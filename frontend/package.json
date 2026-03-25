@@ -51,6 +51,12 @@
         }
       ]
     },
+    "collectCoverageFrom": [
+      "components/**/*.{ts,tsx}",
+      "hooks/**/*.{ts,tsx}",
+      "lib/**/*.{ts,tsx}",
+      "!**/*.d.ts"
+    ],
     "coverageThreshold": {
       "global": {
         "lines": 70
