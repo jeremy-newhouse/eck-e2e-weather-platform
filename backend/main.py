@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.config import settings
 from backend.db.postgres import create_pg_engine, create_pg_session_factory
 from backend.db.timescale import create_ts_engine, create_ts_session_factory
-from backend.routers import health, metrics, weather
+from backend.routers import chat, health, metrics, weather
 
 
 @asynccontextmanager
@@ -71,11 +71,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 app.include_router(health.router)
 app.include_router(weather.router, prefix="/api")
 app.include_router(metrics.router, prefix="/api")
-
-# Remaining router wired in subsequent task (WX-T5):
-# from backend.routers import chat
-# app.include_router(chat.router, prefix="/api")
+app.include_router(chat.router, prefix="/api")
