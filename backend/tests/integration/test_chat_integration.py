@@ -11,8 +11,13 @@ call the live Claude API are additionally skipped when
 from __future__ import annotations
 
 import os
+import uuid
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.models.postgres import ChatMessage, ChatSession
 
 pytestmark = pytest.mark.skipif(
     os.getenv("INTEGRATION_TESTS", "false").lower() != "true",
@@ -30,12 +35,6 @@ _ANTHROPIC_KEY_MISSING: bool = not bool(os.getenv("ANTHROPIC_API_KEY"))
 @pytest.mark.anyio
 async def test_pg_chat_session_can_be_created(test_pg_session: object) -> None:  # type: ignore[type-arg]
     """AC-8: A ChatSession row can be inserted and retrieved from PostgreSQL."""
-    import uuid
-
-    from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import AsyncSession
-
-    from backend.models.postgres import ChatSession
 
     session: AsyncSession = test_pg_session  # type: ignore[assignment]
     new_id = uuid.uuid4()
@@ -54,12 +53,6 @@ async def test_pg_chat_message_persisted_with_foreign_key(
     test_pg_session: object,
 ) -> None:
     """AC-8: ChatMessage rows link back to their parent ChatSession."""
-    import uuid
-
-    from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import AsyncSession
-
-    from backend.models.postgres import ChatMessage, ChatSession
 
     session: AsyncSession = test_pg_session  # type: ignore[assignment]
     session_id = uuid.uuid4()
@@ -87,12 +80,6 @@ async def test_pg_chat_message_persisted_with_foreign_key(
 @pytest.mark.anyio
 async def test_pg_chat_session_cascade_delete(test_pg_session: object) -> None:  # type: ignore[type-arg]
     """AC-8: Deleting a ChatSession cascades to its ChatMessage children."""
-    import uuid
-
-    from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import AsyncSession
-
-    from backend.models.postgres import ChatMessage, ChatSession
 
     session: AsyncSession = test_pg_session  # type: ignore[assignment]
     session_id = uuid.uuid4()
