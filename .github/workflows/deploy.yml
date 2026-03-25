@@ -1,0 +1,48 @@
+name: Deploy to ECS Fargate
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push backend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker build -t $ECR_REGISTRY/weather-platform-backend:latest ./backend
+          docker push $ECR_REGISTRY/weather-platform-backend:latest
+
+      - name: Build, tag, and push frontend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker build -t $ECR_REGISTRY/weather-platform-frontend:latest ./frontend
+          docker push $ECR_REGISTRY/weather-platform-frontend:latest
+
+      - name: Deploy backend to ECS
+        run: |
+          aws ecs update-service --cluster weather-platform --service backend --force-new-deployment
+
+      - name: Deploy frontend to ECS
+        run: |
+          aws ecs update-service --cluster weather-platform --service frontend --force-new-deployment
+
+      - name: Wait for deployment stability
+        run: |
+          aws ecs wait services-stable --cluster weather-platform --services backend frontend

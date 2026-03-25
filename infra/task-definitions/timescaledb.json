@@ -1,0 +1,46 @@
+{
+  "family": "weather-platform-timescaledb",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/weather-platform-execution-role",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/weather-platform-task-role",
+  "containerDefinitions": [
+    {
+      "name": "timescaledb",
+      "image": "timescale/timescaledb:latest-pg16",
+      "portMappings": [{ "containerPort": 5432, "protocol": "tcp" }],
+      "secrets": [
+        {
+          "name": "POSTGRES_USER",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:weather-platform/timescale-user"
+        },
+        {
+          "name": "POSTGRES_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:weather-platform/timescale-password"
+        },
+        {
+          "name": "POSTGRES_DB",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:weather-platform/timescale-db"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/weather-platform-timescaledb",
+          "awslogs-region": "REPLACE_WITH_REGION",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "pg_isready -U postgres || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 5,
+        "startPeriod": 45
+      },
+      "essential": true
+    }
+  ]
+}
