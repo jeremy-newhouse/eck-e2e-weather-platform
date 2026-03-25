@@ -9,7 +9,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
-from backend.routers import health
+from backend.db.postgres import create_pg_engine, create_pg_session_factory
+from backend.db.timescale import create_ts_engine, create_ts_session_factory
+from backend.routers import health, metrics, weather
 
 
 @asynccontextmanager
@@ -39,6 +41,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         cwd=os.path.dirname(__file__),
     )
 
+    # Initialize DB engines and session factories
+    app.state.pg_engine = create_pg_engine(settings.database_url)
+    app.state.pg_session_factory = create_pg_session_factory(app.state.pg_engine)
+    app.state.ts_engine = create_ts_engine(settings.timescale_url)
+    app.state.ts_session_factory = create_ts_session_factory(app.state.ts_engine)
+
     # Initialize shared clients
     app.state.owm_client = httpx.AsyncClient(
         base_url="https://api.openweathermap.org",
@@ -49,6 +57,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     await app.state.owm_client.aclose()
+    await app.state.ts_engine.dispose()
+    await app.state.pg_engine.dispose()
 
 
 app = FastAPI(title="Weather Platform API", version="0.1.0", lifespan=lifespan)
@@ -61,10 +71,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(health.router)
 
-# Remaining routers wired in subsequent tasks (WX-T3, WX-T4, WX-T5):
-# from backend.routers import weather, metrics, chat
-# app.include_router(weather.router, prefix="/api")
-# app.include_router(metrics.router, prefix="/api")
+app.include_router(health.router)
+app.include_router(weather.router, prefix="/api")
+app.include_router(metrics.router, prefix="/api")
+
+# Remaining router wired in subsequent task (WX-T5):
+# from backend.routers import chat
 # app.include_router(chat.router, prefix="/api")
