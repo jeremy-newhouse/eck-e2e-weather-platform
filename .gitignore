@@ -32,6 +32,13 @@ coverage/
 htmlcov/
 .coverage
 
+# Python (additional)
+*.egg-info/
+*.py[cod]
+
+# Node (additional)
+out/
+
 # Claude Code runtime (not committed)
 .claude/audit.log
 .claude/audit.log.1
