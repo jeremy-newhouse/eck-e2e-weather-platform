@@ -223,3 +223,79 @@ class TestSqlQueryStructure:
             assert ":city" in sql_arg
             assert ":interval_ago" in sql_arg
             assert ":bucket_size" in sql_arg
+
+
+# ---------------------------------------------------------------------------
+# Ingest function (AC-4)
+# ---------------------------------------------------------------------------
+
+
+def _make_ingest_request() -> tuple[MagicMock, MagicMock]:
+    """Return (request, session_mock) with a properly-typed session mock.
+
+    ``add_all`` is synchronous in SQLAlchemy so the session is a plain
+    MagicMock; only ``commit`` and the async-context-manager dunder methods
+    are AsyncMock.
+    """
+    session_mock = MagicMock()
+    session_mock.__aenter__ = AsyncMock(return_value=session_mock)
+    session_mock.__aexit__ = AsyncMock(return_value=False)
+    session_mock.commit = AsyncMock()
+    factory_mock = MagicMock(return_value=session_mock)
+
+    request = MagicMock()
+    request.app.state.ts_session_factory = factory_mock
+    return request, session_mock
+
+
+class TestIngest:
+    """Tests for metrics_service.ingest — writes 3 rows to TimescaleDB."""
+
+    @pytest.mark.asyncio
+    async def test_ingest_adds_three_metric_rows(self) -> None:
+        request, session_mock = _make_ingest_request()
+
+        await metrics_service.ingest("London", 15.0, 80.0, 5.0, request)
+
+        session_mock.add_all.assert_called_once()
+        added: list[Any] = session_mock.add_all.call_args[0][0]
+        assert len(added) == 3
+
+    @pytest.mark.asyncio
+    async def test_ingest_stores_correct_metric_names(self) -> None:
+        request, session_mock = _make_ingest_request()
+
+        await metrics_service.ingest("Berlin", 10.0, 65.0, 3.0, request)
+
+        added: list[Any] = session_mock.add_all.call_args[0][0]
+        metric_names = {m.metric_name for m in added}
+        assert metric_names == {"temperature", "humidity", "wind_speed"}
+
+    @pytest.mark.asyncio
+    async def test_ingest_lowercases_city(self) -> None:
+        request, session_mock = _make_ingest_request()
+
+        await metrics_service.ingest("PARIS", 20.0, 55.0, 2.5, request)
+
+        added: list[Any] = session_mock.add_all.call_args[0][0]
+        assert all(m.city == "paris" for m in added)
+
+    @pytest.mark.asyncio
+    async def test_ingest_stores_correct_values(self) -> None:
+        request, session_mock = _make_ingest_request()
+
+        await metrics_service.ingest("Tokyo", 25.0, 70.0, 6.0, request)
+
+        added: list[Any] = session_mock.add_all.call_args[0][0]
+        values_by_name = {m.metric_name: m.value for m in added}
+        assert values_by_name["temperature"] == pytest.approx(25.0)
+        assert values_by_name["humidity"] == pytest.approx(70.0)
+        assert values_by_name["wind_speed"] == pytest.approx(6.0)
+
+    @pytest.mark.asyncio
+    async def test_ingest_commits_session(self) -> None:
+        request, session_mock = _make_ingest_request()
+
+        await metrics_service.ingest("Oslo", 5.0, 90.0, 10.0, request)
+
+        session_mock.commit.assert_awaited_once()
