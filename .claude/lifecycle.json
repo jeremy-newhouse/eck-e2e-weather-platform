@@ -1,5 +1,77 @@
 {
   "schema_version": 5,
-  "active_feature": null,
-  "features": {}
+  "active_feature": "feat-001-weather-platform-core",
+  "features": {
+    "FEAT-001": {
+      "display_name": "FEAT-001",
+      "description": "Full-stack weather platform: FastAPI backend with weather API proxy and caching, PostgreSQL for chat sessions, TimescaleDB for weather metrics ingestion, Next.js 16 dashboard with time-series charts, LLM chatbot with Claude API, Docker Compose local dev, and AWS ECS Fargate deployment with ALB.",
+      "created_at": "2026-03-25T05:03:46.439Z",
+      "updated_at": "2026-03-25T06:43:14.773Z",
+      "branch": "dev",
+      "issue_number": null,
+      "first_started_at": "2026-03-25T05:06:43.071Z",
+      "archived_at": null,
+      "priority": null,
+      "steps": {
+        "spec": {
+          "status": "done",
+          "started_at": "2026-03-25T05:06:43.071Z",
+          "gate_verdict": "PASS",
+          "gate_artifact": "docs/FEAT-001-weather-platform-core/SPEC-REVIEW.md",
+          "completed_at": "2026-03-25T05:17:38.033Z"
+        },
+        "design": {
+          "status": "done",
+          "started_at": "2026-03-25T05:20:16.913Z",
+          "gate_verdict": "PASS",
+          "gate_artifact": "docs/FEAT-001-weather-platform-core/DESIGN-REVIEW.md",
+          "completed_at": "2026-03-25T06:07:49.007Z"
+        },
+        "develop": {
+          "status": "active",
+          "started_at": "2026-03-25T06:12:19.209Z"
+        },
+        "validate": {
+          "status": "pending"
+        },
+        "deploy": {
+          "status": "pending"
+        }
+      },
+      "plan_mode_at": "2026-03-25T05:20:16.889Z"
+    },
+    "feat-001-weather-platform-core": {
+      "display_name": "feat-001-weather-platform-core",
+      "description": null,
+      "created_at": "2026-03-25T07:05:08.389Z",
+      "updated_at": "2026-03-25T07:30:47.869Z",
+      "branch": "dev",
+      "issue_number": null,
+      "first_started_at": "2026-03-25T07:05:08.401Z",
+      "archived_at": null,
+      "priority": null,
+      "steps": {
+        "spec": {
+          "status": "pending"
+        },
+        "design": {
+          "status": "pending"
+        },
+        "develop": {
+          "status": "pending"
+        },
+        "validate": {
+          "status": "active",
+          "started_at": "2026-03-25T07:05:08.401Z"
+        },
+        "deploy": {
+          "status": "active",
+          "started_at": "2026-03-25T07:30:47.869Z",
+          "force_override": true,
+          "force_override_at": "2026-03-25T07:30:55.600Z",
+          "force_override_reason": "User requested --force: critical findings deferred to follow-up"
+        }
+      }
+    }
+  }
 }

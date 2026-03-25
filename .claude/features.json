@@ -1,5 +1,17 @@
 {
   "schema_version": 1,
-  "features": {},
-  "next_id": 1
+  "features": {
+    "FEAT-001": {
+      "id": "FEAT-001",
+      "slug": "weather-platform-core",
+      "display_name": "Weather Platform Core",
+      "description": "Full-stack weather platform: FastAPI backend with weather API proxy and caching, PostgreSQL for chat sessions, TimescaleDB for weather metrics ingestion, Next.js 16 dashboard with time-series charts, LLM chatbot with Claude API, Docker Compose local dev, and AWS ECS Fargate deployment with ALB.",
+      "priority": null,
+      "created_at": "2026-03-25T05:03:42.713Z",
+      "updated_at": "2026-03-25T05:03:42.713Z",
+      "remote": null,
+      "archived_at": null
+    }
+  },
+  "next_id": 2
 }

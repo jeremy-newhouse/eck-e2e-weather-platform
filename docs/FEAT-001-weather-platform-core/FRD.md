@@ -1,26 +1,48 @@
-# Feature Requirements Document
+---
+feature: FEAT-001
+revision: 2
+date: 2026-03-25
+status: Draft
+---
 
-## Feature: Weather Platform — Full-Stack Multi-Service
+# Feature Requirements Document: Weather Platform Core
 
-**Feature ID:** WX-001
-**Status:** Approved
+**Feature ID:** FEAT-001
+**Status:** Draft
+**Solution Type:** full-stack
+
+---
 
 ## Problem Statement
 
-Users need a comprehensive weather platform that provides current weather data, historical weather metrics with trend visualization, and an AI-powered chatbot for natural language weather queries — all deployed as a production-grade multi-service application on AWS ECS.
+Users need a production-grade, full-stack weather platform that delivers real-time weather data, historical trend visualizations, and an AI-powered conversational interface — deployable locally via Docker Compose and to AWS ECS Fargate for E2E testing and demonstration.
 
-## Solution
+---
 
-A multi-service weather platform with:
+## Goals
 
-- **Next.js 16 frontend** (App Router) with server components, weather dashboard, metrics charts, and chatbot UI
-- **FastAPI backend** serving weather data, metrics ingestion, and chatbot conversation endpoints
-- **PostgreSQL** for user sessions, chatbot history, and city metadata
-- **TimescaleDB** (PostgreSQL extension) for time-series weather metrics storage and aggregation
-- **OpenWeatherMap API** integration for real-time weather data
-- **Claude API** (Anthropic) for the LLM-powered weather chatbot
-- **AWS ECS Fargate** deployment with ALB, reachable via public URL
-- **Docker Compose** for local development; ECS task definitions for production
+1. Expose a FastAPI weather endpoint that proxies OpenWeatherMap (via geocoding + One Call API 3.0), caches results for 5 minutes server-side, and stores temperature/humidity/wind_speed metrics to TimescaleDB on each lookup.
+2. Serve a Next.js 16 dashboard displaying time-series charts (temperature, humidity, wind speed) with range selection (1h/6h/24h/7d) via TimescaleDB `time_bucket` aggregation.
+3. Provide an LLM chatbot at `/chat` backed by the Claude API with live weather context injection and PostgreSQL-persisted conversation history (`chat_sessions` + `chat_messages`).
+4. Pass all quality gates: `pytest` (≥80% coverage, unit + integration with live TimescaleDB) and `npm test` (≥70% coverage, Jest + React Testing Library).
+5. Run fully in Docker Compose locally (4 services: frontend, backend, PostgreSQL, TimescaleDB); deploy stateless services (frontend, backend) to ECS Fargate with ALB; TimescaleDB runs as a containerized service for MVP.
+
+---
+
+## Non-Goals
+
+- Multi-region deployment
+- User authentication (public access for E2E)
+- Custom domain / SSL certificate (ALB default URL is sufficient)
+- Auto-scaling policies (single task per service)
+- Weather alerts or push notifications
+- Mobile app or PWA
+- Redis or external cache layer (in-memory TTL only for MVP)
+- Background ingest queue or worker (synchronous ingest at query time)
+- RDS Aurora + TimescaleDB extension migration (deferred to post-MVP)
+- Cost optimization beyond basic Fargate pricing
+
+---
 
 ## Architecture Overview
 
@@ -43,105 +65,54 @@ A multi-service weather platform with:
                                         └─────────┘
 ```
 
+> **Note:** TimescaleDB runs as a containerized service for MVP. This is a stateful container on ECS Fargate (known ops risk). Post-MVP path: migrate to RDS Aurora PostgreSQL + TimescaleDB extension or Timescale Cloud.
+
+---
+
 ## Acceptance Criteria
 
-### AC-01: Weather API endpoint with live data
+| ID    | Criterion                                                                                                                                                                          | Verification     | Status  |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ------- |
+| AC-1  | Returns JSON {city, temperature, description, humidity, wind_speed, timestamp} from GET /api/weather/{city} after resolving the city to coordinates via OWM geocoding API          | Integration test | Pending |
+| AC-2  | Caches weather responses server-side for 5 minutes in an in-memory TTL cache; repeated requests within the TTL return cached data without contacting OWM                           | Integration test | Pending |
+| AC-3  | Returns HTTP 404 with a JSON error body when GET /api/weather/{city} is called with an unresolvable city name                                                                      | Integration test | Pending |
+| AC-4  | Stores temperature, humidity, and wind_speed in the weather_metrics TimescaleDB hypertable on each successful weather lookup (fields: city, metric_name, value, recorded_at)       | Integration test | Pending |
+| AC-5  | Returns time-bucket aggregated metric averages from GET /api/metrics/{city}?range={range} for ranges 1h, 6h, 24h, 7d                                                               | Integration test | Pending |
+| AC-6  | Displays Recharts line charts for temperature, humidity, and wind speed at /dashboard with a working range selector (1h / 6h / 24h / 7d)                                           | E2E test         | Pending |
+| AC-7  | Sends user message with current weather context JSON injected into the Claude API system prompt and returns a conversational response                                              | Integration test | Pending |
+| AC-8  | Persists all chat messages (role, content, created_at) to PostgreSQL chat_sessions and chat_messages tables                                                                        | Integration test | Pending |
+| AC-9  | Returns GET /health as {"status":"ok","services":{"postgres":"ok","timescale":"ok"}} with HTTP 200 when all services are reachable                                                 | Unit test        | Pending |
+| AC-10 | Returns GET /ready with HTTP 200 when all database connections are established; HTTP 503 otherwise                                                                                 | Unit test        | Pending |
+| AC-11 | Creates chat_sessions, chat_messages, cities tables and weather_metrics hypertable via Alembic migrations with indexes on cities(name) and weather_metrics(city, recorded_at DESC) | Unit test        | Pending |
+| AC-12 | Starts all 4 Docker Compose services with frontend at :3000, backend at :8000, both databases healthy, and CORS configured to allow requests from localhost:3000                   | Manual test      | Pending |
+| AC-13 | Deploys frontend and backend as ECS Fargate services accessible via ALB with passing health checks and secrets sourced from AWS Secrets Manager                                    | Deployment test  | Pending |
+| AC-14 | Renders weather search page at / via Next.js server component with city search input, current weather card, and navigation links to /dashboard and /chat                           | E2E test         | Pending |
+| AC-15 | Passes uv run pytest with ≥80% backend coverage (unit + integration with live TimescaleDB via TEST_DATABASE_URL) and npm test with ≥70% frontend coverage                          | Unit test        | Pending |
 
-**Verification:** Integration test
+---
 
-**Given** a client sends GET /api/weather/{city}
-**When** a valid city name is provided
-**Then** the API returns JSON with fields: city, temperature, description, humidity, wind_speed, and timestamp — sourced from the OpenWeatherMap API
-**And** the response is cached for 5 minutes to avoid rate limiting
+## AC Changelog
 
-### AC-02: Weather metrics ingestion and storage
+| Revision | AC-ID       | Change   | Reason                                                                                 |
+| -------- | ----------- | -------- | -------------------------------------------------------------------------------------- |
+| 2        | AC-1        | Modified | Refined from AC-01: verb-first, OWM geocoding flow made explicit                       |
+| 2        | AC-2        | Added    | Split from AC-01: caching behavior separated into its own atomic criterion             |
+| 2        | AC-3        | Added    | New error-state criterion: 404 on unresolvable city name (absent from v1)              |
+| 2        | AC-4        | Modified | Refined from AC-02: hypertable explicit, field list confirmed                          |
+| 2        | AC-5        | Modified | Refined from AC-03 (backend half): time_bucket aggregation made explicit               |
+| 2        | AC-6        | Modified | Split from AC-03 (frontend half): Recharts chart rendering separated                   |
+| 2        | AC-7        | Modified | Refined from AC-04 (Claude call half): context injection made explicit                 |
+| 2        | AC-8        | Modified | Split from AC-04 (persistence half): chat schema (sessions + messages) separated       |
+| 2        | AC-9        | Modified | Refined from AC-05 (health half): exact response body specified                        |
+| 2        | AC-10       | Modified | Split from AC-05 (ready half): 503 on DB unavailability made explicit                  |
+| 2        | AC-11       | Modified | Refined from AC-06: if_not_exists, index specs, and Alembic idiom clarified            |
+| 2        | AC-12       | Modified | Refined from AC-07: CORS requirement absorbed from Architecture notes                  |
+| 2        | AC-13       | Modified | Refined from AC-08: stateful TimescaleDB container risk acknowledged                   |
+| 2        | AC-14       | Modified | Refined from AC-09: server component requirement explicit                              |
+| 2        | AC-15       | Modified | Refined from AC-10: uv run pytest, TEST_DATABASE_URL, and live DB requirement explicit |
+| 1        | AC-01–AC-10 | Added    | Initial draft: 10 narrative GWT criteria                                               |
 
-**Verification:** Integration test
-
-**Given** the backend receives weather data from OpenWeatherMap
-**When** a weather lookup is performed
-**Then** the temperature, humidity, and wind_speed are stored as time-series data points in TimescaleDB
-**And** the data includes city, metric_name, value, and recorded_at timestamp
-
-### AC-03: Metrics dashboard with time-series charts
-
-**Verification:** E2E test
-
-**Given** a user navigates to /dashboard
-**When** they select a city and time range (1h, 6h, 24h, 7d)
-**Then** the frontend displays line charts for temperature, humidity, and wind speed over time
-**And** the data is fetched from GET /api/metrics/{city}?range={range}
-
-### AC-04: LLM Weather Chatbot
-
-**Verification:** Integration test
-
-**Given** a user opens the chatbot at /chat
-**When** they send a natural language message like "What's the weather in Tokyo?" or "Compare London and Paris temperatures"
-**Then** the backend sends the query to the Claude API with weather context
-**And** returns a conversational response with accurate weather data
-**And** the conversation history is stored in PostgreSQL
-
-### AC-05: Health check and readiness endpoints
-
-**Verification:** Unit test
-
-**Given** the backend is running
-**When** GET /health is called
-**Then** it returns `{ "status": "ok", "services": { "postgres": "ok", "timescale": "ok" } }` with HTTP 200
-**And** GET /ready returns 200 only when all database connections are established
-
-### AC-06: PostgreSQL schema and migrations
-
-**Verification:** Unit test
-
-**Given** the application starts
-**When** database migrations run
-**Then** tables are created: chat_sessions, chat_messages, cities, and the TimescaleDB hypertable weather_metrics
-**And** indexes exist on city name and recorded_at timestamp
-
-### AC-07: Docker Compose local development
-
-**Verification:** Manual / script
-
-**Given** the developer runs `docker compose up`
-**When** all services start
-**Then** the frontend is accessible at http://localhost:3000
-**And** the backend API is accessible at http://localhost:8000
-**And** PostgreSQL and TimescaleDB are healthy
-
-### AC-08: AWS ECS Fargate deployment
-
-**Verification:** Deployment test
-
-**Given** the ECS task definitions and ALB are configured
-**When** the application is deployed via `aws ecs update-service`
-**Then** the frontend is reachable at the ALB public URL
-**And** health checks pass on both frontend and backend targets
-**And** environment variables (API keys, DB connection strings) are sourced from AWS Secrets Manager
-
-### AC-09: Next.js frontend with server components
-
-**Verification:** E2E test
-
-**Given** a user navigates to the root URL (/)
-**When** the page loads
-**Then** the Next.js app renders a weather search page with:
-
-- City search input with autocomplete
-- Current weather display card
-- Navigation to /dashboard and /chat
-  **And** weather data is fetched via server components for initial load
-
-### AC-10: Test suite passes
-
-**Verification:** CI
-
-**Given** the test suites are run
-**When** all tests execute
-**Then** backend tests pass: `pytest` (unit + integration with test database)
-**And** frontend tests pass: `npm test` (Jest + React Testing Library)
-**And** test coverage meets minimum thresholds (80% backend, 70% frontend)
+---
 
 ## Tech Stack
 
@@ -161,12 +132,11 @@ A multi-service weather platform with:
 | Secrets          | AWS Secrets Manager     | —       |
 | CI/CD            | GitHub Actions          | —       |
 
-## Out of Scope
+---
 
-- Multi-region deployment
-- User authentication (public access for E2E)
-- Custom domain / SSL certificate (use ALB default)
-- Auto-scaling policies (single task per service is fine)
-- Weather alerts or push notifications
-- Mobile app or PWA
-- Cost optimization beyond basic Fargate pricing
+## Revision History
+
+| Rev | Date       | Author      | Summary                                                                                                                                             |
+| --- | ---------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2   | 2026-03-25 | AI-assisted | Quick-pass revision: scope locked (goals/non-goals), ACs converted to canonical table, +5 split/new ACs, all 15 refined for atomicity and precision |
+| 1   | 2026-03-25 | AI-assisted | Initial spec: 10 narrative GWT ACs covering weather API, metrics, chatbot, deployment, testing                                                      |
