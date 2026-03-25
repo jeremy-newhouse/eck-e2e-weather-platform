@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+__pycache__/
+.venv/
+venv/
+
+# Build
+.next/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+htmlcov/
+.coverage
+
+# Claude Code runtime (not committed)
+.claude/audit.log
+.claude/audit.log.1
+.claude/session-errors.jsonl
+.claude/error-history.jsonl
+.checkpoint
+.planning-session
+.claude/handovers/HANDOVER-*.md
