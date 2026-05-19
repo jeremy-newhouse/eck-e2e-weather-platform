@@ -6,7 +6,27 @@
 
 ## Prerequisites
 
-<CONTRIBUTING_SETUP_NOTES>
+### Backend
+
+```bash
+cd backend
+uv sync
+cp .env.example .env
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+```
+
+### Local dev (Docker Compose)
+
+```bash
+docker compose up
+```
 
 ---
 
@@ -25,8 +45,8 @@
 
 ## Branch Conventions
 
-| Prefix    | Purpose            | Example                                   |
-| --------- | ------------------ | ----------------------------------------- |
+| Prefix    | Purpose            | Example                        |
+| --------- | ------------------ | ------------------------------ |
 | `feat/`   | New features       | `feat/WX-42-user-auth`         |
 | `fix/`    | Bug fixes          | `fix/WX-51-login-redirect`     |
 | `hotfix/` | Production patches | `hotfix/WX-99-session-timeout` |
@@ -60,11 +80,11 @@ Refs: WX-XXX
 
 Run these before opening a PR:
 
-| Gate  | Backend                  | Frontend                 |
-| ----- | ------------------------ | ------------------------ |
-| Tests | `<TEST_COMMAND_BE>`      | `<TEST_COMMAND_FE>`      |
-| Lint  | `<LINT_COMMAND_BE>`      | `<LINT_COMMAND_FE>`      |
-| Types | `<TYPECHECK_COMMAND_BE>` | `<TYPECHECK_COMMAND_FE>` |
+| Gate  | Backend               | Frontend            |
+| ----- | --------------------- | ------------------- |
+| Tests | `uv run pytest`       | `npm test`          |
+| Lint  | `uv run ruff check .` | `npm run lint`      |
+| Types | `uv run mypy .`       | `npm run typecheck` |
 
 All gates must pass before merge.
 
@@ -84,12 +104,12 @@ All gates must pass before merge.
 
 If this project uses [evolv-coder-kit](https://github.com/evolvconsulting/evolv-coder-kit), these slash commands streamline the workflow:
 
-| Command                               | Purpose                                    |
-| ------------------------------------- | ------------------------------------------ |
-| `/<PK>:design-feature <desc>`         | Design a feature (research, design, tasks) |
-| `/<PK>:dev-feature WX-XXX` | Implement all tasks under an epic          |
-| `/<PK>:dev-task WX-XXX`    | Implement a single task (TDD)              |
-| `/<PK>:validate-quality`              | Run all quality gates                      |
+| Command                       | Purpose                                    |
+| ----------------------------- | ------------------------------------------ |
+| `/<PK>:design-feature <desc>` | Design a feature (research, design, tasks) |
+| `/<PK>:dev-feature WX-XXX`    | Implement all tasks under an epic          |
+| `/<PK>:dev-task WX-XXX`       | Implement a single task (TDD)              |
+| `/<PK>:validate-quality`      | Run all quality gates                      |
 
 > Full workflow details: [development-workflow.md](development-workflow.md)
 
